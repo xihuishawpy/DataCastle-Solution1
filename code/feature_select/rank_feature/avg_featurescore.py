@@ -6,7 +6,8 @@ Code: https://github.com/wepe/DataCastle-Solution
 
 """
 
-import pandas as pd 
+
+import pandas as pd
 import os
 
 
@@ -22,13 +23,11 @@ for f in files:
             fs[key] += d[key]
         else:
             fs[key] = d[key] 
-            
+
 fs = sorted(fs.items(), key=lambda x:x[1],reverse=True)
 
 t = []
-for (key,value) in fs:
-    t.append("{0},{1}\n".format(key,value))
-
+t.extend("{0},{1}\n".format(key,value) for key, value in fs)
 with open('rank_feature_score.csv','w') as f:
     f.writelines("feature,score\n")
     f.writelines(t)

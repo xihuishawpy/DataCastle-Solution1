@@ -48,25 +48,22 @@ def pipeline(iteration,random_seed,gamma,max_depth,lambd,subsample,colsample_byt
     	'seed':random_seed,
     	'nthread':8
         }
-    
+
     watchlist  = [(dtrain,'train')]
     model = xgb.train(params,dtrain,num_boost_round=1350,evals=watchlist)
     model.save_model('./model/xgb{0}.model'.format(iteration))
-    
+
     #predict test set
     test_y = model.predict(dtest)
     test_result = pd.DataFrame(columns=["uid","score"])
     test_result.uid = test_uid
     test_result.score = test_y
     test_result.to_csv("./preds/xgb{0}.csv".format(iteration),index=None,encoding='utf-8')
-    
+
     #save feature score
     feature_score = model.get_fscore()
     feature_score = sorted(feature_score.items(), key=lambda x:x[1],reverse=True)
-    fs = []
-    for (key,value) in feature_score:
-        fs.append("{0},{1}\n".format(key,value))
-    
+    fs = ["{0},{1}\n".format(key,value) for key, value in feature_score]
     with open('./featurescore/feature_score_{0}.csv'.format(iteration),'w') as f:
         f.writelines("feature,score\n")
         f.writelines(fs)
@@ -75,12 +72,12 @@ def pipeline(iteration,random_seed,gamma,max_depth,lambd,subsample,colsample_byt
 
 if __name__ == "__main__":
     random_seed = range(1000,2000,10)
-    gamma = [i/1000.0 for i in range(100,200,1)]
+    gamma = [i/1000.0 for i in range(100, 200)]
     max_depth = [6,7,8]
-    lambd = range(100,200,1)
+    lambd = range(100, 200)
     subsample = [i/1000.0 for i in range(500,700,2)]
-    colsample_bytree = [i/1000.0 for i in range(250,350,1)]
-    min_child_weight = [i/1000.0 for i in range(200,300,1)]
+    colsample_bytree = [i/1000.0 for i in range(250, 350)]
+    min_child_weight = [i/1000.0 for i in range(200, 300)]
     random.shuffle(random_seed)
     random.shuffle(gamma)
     random.shuffle(max_depth)
@@ -88,11 +85,11 @@ if __name__ == "__main__":
     random.shuffle(subsample)
     random.shuffle(colsample_bytree)
     random.shuffle(min_child_weight)
-    
+
     #save params for reproducing
     with open('params.pkl','w') as f:
         cPickle.dump((random_seed,gamma,max_depth,lambd,subsample,colsample_bytree,min_child_weight),f)
-    
+
     #to reproduce my result, uncomment following lines
     """
     with open('params_for_reproducing.pkl','r') as f:

@@ -63,8 +63,8 @@ if __name__ == "__main__":
 
     for i in range(30):
         pipeline(i,C[i],gamma[i],random_seed[i])
-        
-        
+
+
     #mp version
     """
     pool = Pool(4)
