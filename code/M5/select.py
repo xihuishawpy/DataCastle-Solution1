@@ -4,6 +4,7 @@
 对label.csv里的数据按照bset_auc排序，然后选取top5000个无标签样本（即线下auc提升最大的无标签样本）
 每次从这top5000个样本里随机选取50个样本
 """
+
 import pandas as pd
 import random,os
 
@@ -20,11 +21,11 @@ inds = list(labels.ind)
 random.shuffle(inds)
 
 os.mkdir('samples_selected')
+y = ['sample1','sample2','sample3','sample4','sample5','sample6','sample7','sample8','sample9','sample10']
 for i in range(100):
-    y = ['sample1','sample2','sample3','sample4','sample5','sample6','sample7','sample8','sample9','sample10']
     five_inds = inds[(5*i):(5*(i+1))]
     five_inds_label = [labels[labels.ind==this_ind][y].values.tolist()  for this_ind in five_inds]
-    
+
     five_inds_label_ = []
     [five_inds_label_.extend(j[0]) for j in five_inds_label]
 
@@ -32,7 +33,7 @@ for i in range(100):
     uid_index = []
     [uid_index.extend(t) for t in temp]
 
-    
+
     #无标签样本的uid
     train_unlabel_uid = pd.read_csv('train_unlabeled.csv')
     sample50 = train_unlabel_uid.loc[uid_index]

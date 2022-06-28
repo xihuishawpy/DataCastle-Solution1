@@ -7,6 +7,7 @@ Code: https://github.com/wepe/DataCastle-Solution
 """
 
 
+
 import pandas as pd
 import xgboost as xgb
 import sys,random
@@ -42,14 +43,14 @@ del test_nd,train_nd,trainunlabeled_nd
 
 #离散特征
 discret_feature_score = pd.read_csv('./discret_feature_score.csv')
-fs = list(discret_feature_score.feature[0:500])
+fs = list(discret_feature_score.feature[:500])
 discret_train = pd.read_csv("../data/train_x_discretization.csv")[['uid']+fs]
 discret_test = pd.read_csv("../data/test_x_discretization.csv")[['uid']+fs]
 discret_train_unlabeled = pd.read_csv("../data/train_unlabeled_discretization.csv")[['uid']+fs]
 
 #排序特征
 rank_feature_score = pd.read_csv('./rank_feature_score.csv')
-fs = list(rank_feature_score.feature[0:500])
+fs = list(rank_feature_score.feature[:500])
 rank_train_x = pd.read_csv("../data/train_x_rank.csv")
 rank_train = rank_train_x[fs] / float(len(rank_train_x))
 rank_train['uid'] = rank_train_x.uid
@@ -66,7 +67,7 @@ del rank_train_x,rank_test_x,rank_train_unlabeled_x
 
 #原始特征
 raw_feature_score = pd.read_csv('./raw_feature_score.csv')
-fs = list(raw_feature_score.feature[0:500])
+fs = list(raw_feature_score.feature[:500])
 raw_train_x = pd.read_csv("../data/train_x.csv")[['uid']+fs]
 raw_train_y = pd.read_csv("../data/train_y.csv")
 raw_train = pd.merge(raw_train_x,raw_train_y,on='uid')
@@ -98,16 +99,19 @@ neg_sample = pd.merge(tmp2,discret_train_unlabeled,on="uid",how="left")
 neg_sample = neg_sample.drop(["score","uid"],axis=1)
 neg_sample['y'] = [0 for _ in range(len(neg_sample))]
 
-print "select {0} negative sample from train_unlabel.csv".format(len(newdata0))
+import pandas as pd
 del unlabeldata_0,tmp,tmp1,tmp2
 
 
 
 def pipeline(iteration,random_seed,feature_num,rank_feature_num,discret_feature_num,gamma,max_depth,lambd,subsample,colsample_bytree,min_child_weight):
     #选取的前n个原始特征、排序特征、离散特征
-    raw_feature_selected = list(raw_feature_score.feature[0:feature_num])
-    rank_feature_selected = list(rank_feature_score.feature[0:rank_feature_num])
-    discret_feature_selected = list(discret_feature_score.feature[0:discret_feature_num])
+    raw_feature_selected = list(raw_feature_score.feature[:feature_num])
+    rank_feature_selected = list(rank_feature_score.feature[:rank_feature_num])
+    discret_feature_selected = list(
+        discret_feature_score.feature[:discret_feature_num]
+    )
+
 
     #根据选取的特征构造出训练集，测试集，以及从无标签数据中获取的负样本
     train_xy = train[eleven_feature+feature_selected+rank_feature_selected+discret_feature_selected+['y']]
@@ -118,12 +122,12 @@ def pipeline(iteration,random_seed,feature_num,rank_feature_num,discret_feature_
 
     neg = neg_sample[eleven_feature+feature_selected+rank_feature_selected+discret_feature_selected+['y']]
     neg[neg<0] = -1   
-    
+
     #将从无标签数据中选取出的负样本和原始训练数据合并
     train_xy = pd.concat([train_xy,neg])
     y = train_xy.y
     X = train_xy.drop(['y'],axis=1)
-    
+
     #xgboost start
     dtest = xgb.DMatrix(test_x)
     dtrain = xgb.DMatrix(X, label=y)
@@ -142,24 +146,21 @@ def pipeline(iteration,random_seed,feature_num,rank_feature_num,discret_feature_
     	'seed':random_seed,
     	'nthread':8
         }
-    
+
     watchlist  = [(dtrain,'train')]
     model = xgb.train(params,dtrain,num_boost_round=1024,evals=watchlist)
     model.save_model('./model/xgb{0}.model'.format(iteration))
-    
+
     #predict test set
     test_y = model.predict(dtest)
     test_result = pd.DataFrame(test_uid,columns=["uid"])
     test_result["score"] = test_y
     test_result.to_csv("./preds/xgb{0}.csv".format(iteration),index=None,encoding='utf-8')
-    
+
     #save feature score
     feature_score = model.get_fscore()
     feature_score = sorted(feature_score.items(), key=lambda x:x[1],reverse=True)
-    fs = []
-    for (key,value) in feature_score:
-        fs.append("{0},{1}\n".format(key,value))
-    
+    fs = ["{0},{1}\n".format(key,value) for key, value in feature_score]
     with open('./featurescore/feature_score_{0}.csv'.format(iteration),'w') as f:
         f.writelines("feature,score\n")
         f.writelines(fs)

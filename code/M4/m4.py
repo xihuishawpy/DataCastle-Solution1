@@ -38,14 +38,14 @@ del test_nd,train_nd,trainunlabeled_nd
 
 #离散特征
 discret_feature_score = pd.read_csv('./discret_feature_score.csv')
-fs = list(discret_feature_score.feature[0:500])
+fs = list(discret_feature_score.feature[:500])
 discret_train = pd.read_csv("../data/train_x_discretization.csv")[['uid']+fs]
 discret_test = pd.read_csv("../data/test_x_discretization.csv")[['uid']+fs]
 discret_train_unlabeled = pd.read_csv("../data/train_unlabeled_discretization.csv")[['uid']+fs]
 
 #排序特征
 rank_feature_score = pd.read_csv('./rank_feature_score.csv')
-fs = list(rank_feature_score.feature[0:500])
+fs = list(rank_feature_score.feature[:500])
 rank_train_x = pd.read_csv("../data/train_x_rank.csv")
 rank_train = rank_train_x[fs] / float(len(rank_train_x))
 rank_train['uid'] = rank_train_x.uid
@@ -62,7 +62,7 @@ del rank_train_x,rank_test_x,rank_train_unlabeled_x
 
 #原始特征
 raw_feature_score = pd.read_csv('./raw_feature_score.csv')
-fs = list(raw_feature_score.feature[0:500])
+fs = list(raw_feature_score.feature[:500])
 raw_train_x = pd.read_csv("../data/train_x.csv")[['uid']+fs]
 raw_train_y = pd.read_csv("../data/train_y.csv")
 raw_train = pd.merge(raw_train_x,raw_train_y,on='uid')
@@ -103,7 +103,7 @@ pos_sample['y'] = [1 for _ in range(len(pos_sample))]
 
 samples_from_unlabel = pd.concat([neg_sample,pos_sample])
 
-print "select {0} samples from train_unlabel.csv".format(len(samples_from_unlabel))
+import pandas as pd
 del unlabeldata_0,unlabeldata_1,tmp,tmp1,tmp2
 
 
@@ -113,9 +113,12 @@ samples_from_unlabel = samples_from_unlabel[samples_from_unlabel.discret_null!=5
 
 
 def pipeline(iteration,random_seed,feature_num,rank_feature_num,discret_feature_num,gamma,max_depth,lambd,subsample,colsample_bytree,min_child_weight):
-    raw_feature_selected = list(raw_feature_score.feature[0:feature_num])
-    rank_feature_selected = list(rank_feature_score.feature[0:rank_feature_num])
-    discret_feature_selected = list(discret_feature_score.feature[0:discret_feature_num])
+    raw_feature_selected = list(raw_feature_score.feature[:feature_num])
+    rank_feature_selected = list(rank_feature_score.feature[:rank_feature_num])
+    discret_feature_selected = list(
+        discret_feature_score.feature[:discret_feature_num]
+    )
+
 
     train_xy = train[eleven_feature+raw_feature_selected+rank_feature_selected+discret_feature_selected+['y']]
     train_xy[train_xy<0] = -1
@@ -125,12 +128,12 @@ def pipeline(iteration,random_seed,feature_num,rank_feature_num,discret_feature_
 
     neg_pos = samples_from_unlabel[eleven_feature+raw_feature_selected+rank_feature_selected+discret_feature_selected+['y']]
     neg_pos[neg_pos<0] = -1   
-    
+
     #将从无标签数据中选取出的负样本和原始训练数据合并
     train_xy = pd.concat([train_xy,neg_pos])
     y = train_xy.y
     X = train_xy.drop(['y'],axis=1)
-    
+
     #xgboost start
     dtest = xgb.DMatrix(test_x)
     dtrain = xgb.DMatrix(X, label=y)
@@ -149,24 +152,21 @@ def pipeline(iteration,random_seed,feature_num,rank_feature_num,discret_feature_
     	'seed':random_seed,
     	'nthread':8
         }
-    
+
     watchlist  = [(dtrain,'train')]
     model = xgb.train(params,dtrain,num_boost_round=1500,evals=watchlist)
     model.save_model('./model/xgb{0}.model'.format(iteration))
-    
+
     #predict test set
     test_y = model.predict(dtest)
     test_result = pd.DataFrame(test_uid,columns=["uid"])
     test_result["score"] = test_y
     test_result.to_csv("./preds/xgb{0}.csv".format(iteration),index=None,encoding='utf-8')
-    
+
     #save feature score
     feature_score = model.get_fscore()
     feature_score = sorted(feature_score.items(), key=lambda x:x[1],reverse=True)
-    fs = []
-    for (key,value) in feature_score:
-        fs.append("{0},{1}\n".format(key,value))
-    
+    fs = ["{0},{1}\n".format(key,value) for key, value in feature_score]
     with open('./featurescore/feature_score_{0}.csv'.format(iteration),'w') as f:
         f.writelines("feature,score\n")
         f.writelines(fs)

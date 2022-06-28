@@ -1,6 +1,7 @@
 """
 Author: wepon (http://2hwp.com)
 """
+
 print(__doc__)
 
 from sklearn.cross_validation import train_test_split
@@ -42,9 +43,7 @@ for feature in features:
     n_gt1w = len(train_x[train_x[feature]>10000])  #greater than 10000
     feature_info[feature] = [min_,max_,n_null,n_gt1w]
 
-#see how many neg/pos sample
-print "neg:{0},pos:{1}".format(len(train_xy[train_xy.y==0]),len(train_xy[train_xy.y==1]))
-
+print(__doc__)
 
 #split train set,generate train,val,test set
 train_xy = train_xy.drop(['uid'],axis=1)
@@ -80,7 +79,7 @@ params={
 watchlist  = [(dtrain,'train'),(dval,'val')]#The early stopping is based on last set in the evallist
 model = xgb.train(params,dtrain,num_boost_round=50000,evals=watchlist)
 model.save_model('./model/xgb.model')
-print "best best_ntree_limit",model.best_ntree_limit   #did not save the best,why?
+print(__doc__)
 
 #predict test set (from the best iteration)
 test_y = model.predict(dtest,ntree_limit=model.best_ntree_limit)
@@ -96,9 +95,12 @@ for key in feature_score:
     feature_score[key] = [feature_score[key]]+feature_info[key]+[features_type[key]]
 
 feature_score = sorted(feature_score.items(), key=lambda x:x[1],reverse=True)
-fs = []
-for (key,value) in feature_score:
-    fs.append("{0},{1},{2},{3},{4},{5},{6}\n".format(key,value[0],value[1],value[2],value[3],value[4],value[5]))
+fs = [
+    "{0},{1},{2},{3},{4},{5},{6}\n".format(
+        key, value[0], value[1], value[2], value[3], value[4], value[5]
+    )
+    for key, value in feature_score
+]
 
 with open('feature_score.csv','w') as f:
     f.writelines("feature,score,min,max,n_null,n_gt1w\n")

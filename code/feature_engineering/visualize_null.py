@@ -6,6 +6,7 @@ Code: https://github.com/wepe/DataCastle-Solution
 
 """
 
+
 import numpy as np
 import pandas as pd
 import matplotlib.pylab as plt
@@ -23,7 +24,7 @@ test = test.sort(columns='n_null')
 
 t = train.n_null.values
 y = train.y.values
-y0 = [ i+1-sum(y[0:i+1]) for i in range(len(y))]
+y0 = [i+1 - sum(y[:i+1]) for i in range(len(y))]
 x = range(len(t))
 plt.scatter(x,t,c='k')
 plt.plot(x,y0,c='b')
